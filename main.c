@@ -61,6 +61,9 @@ int main (int argc, char *argv[]) {
     ssize_t read;
     int count = 0, count_lines = 0, i = 0, c;
     uint32_t current_ip, previous_ip;
+    
+    /* check that ip fits into int */
+    assert(sizeof(int) >= sizeof(uint32_t));
 
     line_count = fopen(argv[1], "r");
     do {
@@ -94,7 +97,6 @@ int main (int argc, char *argv[]) {
             if (inet_pton(AF_INET, previous_line, &(ip.sin_addr)) < 1)
                 err(1, "inet_aton() for %s failed", previous_line);
             inet_ntop(AF_INET, &(ip.sin_addr), max_ip, INET_ADDRSTRLEN); 
-//            printf("%s - %s\n", min_ip, max_ip);
             print_cidr(min_ip, max_ip);          
             count = 0;
             
@@ -113,16 +115,6 @@ int main (int argc, char *argv[]) {
     if (line)
         free(line);
 
-    /* check that ip fits into int */
-    assert(sizeof(int) >= sizeof(uint32_t));
-   /* 
-    printf("CIDR ranges for 192.168.0.1-192.168.255.254:\n");
-    print_cidr("192.168.0.1", "192.168.255.254");
-    printf("\n");
- 
-    printf("CIDR ranges for 0.0.0.1-255.255.255.254:\n");
-    print_cidr("0.0.0.1", "255.255.255.254");
- */
     exit(EXIT_SUCCESS);
 }
 
