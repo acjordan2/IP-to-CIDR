@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <unistd.h>
 
 #define IPv4_BITS 32
 
@@ -48,10 +49,9 @@ static void print_cidr(const char *start_ip, const char *end_ip) {
 }
 
 int main (int argc, char *argv[]) {
-    if (argc !=2) {
-        printf("Usage: %s input__file\n", argv[0]);
-        exit(0);
-    }
+    
+ char buf[BUFSIZ];
+
 
     //struct in_addr ip;
     struct sockaddr_in ip;
@@ -61,60 +61,104 @@ int main (int argc, char *argv[]) {
     ssize_t read;
     int count = 0, count_lines = 0, i = 0, c;
     uint32_t current_ip, previous_ip;
-    
+ 
     /* check that ip fits into int */
     assert(sizeof(int) >= sizeof(uint32_t));
 
-    line_count = fopen(argv[1], "r");
-    do {
-        c = fgetc(line_count);
-        if (c == '\n') {
-            count_lines++;
+    if (isatty(fileno(stdin))) {
+        if (argc !=2) {
+            printf("Usage: %s input__file\n", argv[0]);
+            exit(0);
         }
-    } while (c != EOF);
-        fclose(line_count);
-    
 
-    input = fopen(argv[1], "r");
-    if (input == NULL)
-        exit(EXIT_FAILURE);
 
-    while ((read = getline(&line, &len, input) != -1)) {
-         line[strlen(line) - 1] = 0;
-         if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 0)
-            err(1, "inet_pton() for %s failed", line);
-
-        current_ip = ntohl(ip.sin_addr.s_addr);
-
-        if (count == 0) {
-            if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 1)
-                err(1, "inet_aton() for %s failed", line);
-            inet_ntop(AF_INET, &(ip.sin_addr), min_ip, INET_ADDRSTRLEN);
-        }
-        else if ((count > 0 && (current_ip - previous_ip) > 1) || i == (count_lines - 1)) {
-            if (i ==  (count_lines - 1))
-                memcpy(previous_line, line, 16);
-            if (inet_pton(AF_INET, previous_line, &(ip.sin_addr)) < 1)
-                err(1, "inet_aton() for %s failed", previous_line);
-            inet_ntop(AF_INET, &(ip.sin_addr), max_ip, INET_ADDRSTRLEN); 
-            print_cidr(min_ip, max_ip);          
-            count = 0;
-            
-            if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 1)
-                err(1, "inet_aton() for %s failed", line);
-            inet_ntop(AF_INET, &(ip.sin_addr), min_ip, INET_ADDRSTRLEN);
-        } 
-        previous_ip = current_ip;     
-        memcpy(previous_line, line, 16); 
+        line_count = fopen(argv[1], "r");
+        do {
+            c = fgetc(line_count);
+            if (c == '\n') {
+                count_lines++;
+            }
+        } while (c != EOF);
+            fclose(line_count);
         
-        count++;
-        i++;
+
+        input = fopen(argv[1], "r");
+        if (input == NULL)
+            exit(EXIT_FAILURE);
+
+        while ((read = getline(&line, &len, input) != -1)) {
+             line[strlen(line) - 1] = 0;
+             if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 0)
+                err(1, "inet_pton() for %s failed", line);
+
+            current_ip = ntohl(ip.sin_addr.s_addr);
+
+            if (count == 0) {
+                if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 1)
+                    err(1, "inet_aton() for %s failed", line);
+                inet_ntop(AF_INET, &(ip.sin_addr), min_ip, INET_ADDRSTRLEN);
+            }
+            else if ((count > 0 && (current_ip - previous_ip) > 1) || i == (count_lines - 1)) {
+                if (i ==  (count_lines - 1))
+                    memcpy(previous_line, line, 16);
+                if (inet_pton(AF_INET, previous_line, &(ip.sin_addr)) < 1)
+                    err(1, "inet_aton() for %s failed", previous_line);
+                inet_ntop(AF_INET, &(ip.sin_addr), max_ip, INET_ADDRSTRLEN); 
+                print_cidr(min_ip, max_ip);          
+                count = 0;
+                
+                if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 1)
+                    err(1, "inet_aton() for %s failed", line);
+                inet_ntop(AF_INET, &(ip.sin_addr), min_ip, INET_ADDRSTRLEN);
+            } 
+            previous_ip = current_ip;     
+            memcpy(previous_line, line, 16); 
+            
+            count++;
+            i++;
+        }
+
+        fclose(input);
+        if (line)
+            free(line);
+    } else {
+        while(fgets(buf, sizeof buf, stdin)) {
+            if (buf[strlen(buf)-1] == '\n') {
+                line = buf;
+                line[strlen(line) - 1] = 0;
+                if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 0)
+                    err(1, "inet_pton() for %s failed", line);
+
+                current_ip = ntohl(ip.sin_addr.s_addr);
+
+                if (count == 0) {
+                    if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 1)
+                        err(1, "inet_aton() for %s failed", line);
+                    inet_ntop(AF_INET, &(ip.sin_addr), min_ip, INET_ADDRSTRLEN);
+                } else if ((count > 0 && (current_ip - previous_ip) > 1)) {
+                    if (inet_pton(AF_INET, previous_line, &(ip.sin_addr)) < 1)
+                        err(1, "inet_aton() for %s failed", previous_line);
+                    inet_ntop(AF_INET, &(ip.sin_addr), max_ip, INET_ADDRSTRLEN); 
+                    print_cidr(min_ip, max_ip);          
+                    count = 0;
+                
+                    if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 1)
+                        err(1, "inet_aton() for %s failed", line);
+                    inet_ntop(AF_INET, &(ip.sin_addr), min_ip, INET_ADDRSTRLEN);
+                } 
+                previous_ip = current_ip;   
+                memcpy(previous_line, line, 16); 
+                
+                count++;
+            }
+        
+        }
+        if (inet_pton(AF_INET, line, &(ip.sin_addr)) < 1)
+            err(1, "inet_aton() for %s failed", previous_line);
+        inet_ntop(AF_INET, &(ip.sin_addr), max_ip, INET_ADDRSTRLEN); 
+        print_cidr(min_ip, max_ip);          
+                
     }
-
-    fclose(input);
-    if (line)
-        free(line);
-
     exit(EXIT_SUCCESS);
 }
 
