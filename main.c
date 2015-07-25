@@ -71,17 +71,6 @@ int main (int argc, char *argv[]) {
             exit(0);
         }
 
-
-        line_count = fopen(argv[1], "r");
-        do {
-            c = fgetc(line_count);
-            if (c == '\n') {
-                count_lines++;
-            }
-        } while (c != EOF);
-            fclose(line_count);
-        
-
         input = fopen(argv[1], "r");
         if (input == NULL)
             exit(EXIT_FAILURE);
@@ -98,9 +87,7 @@ int main (int argc, char *argv[]) {
                     err(1, "inet_aton() for %s failed", line);
                 inet_ntop(AF_INET, &(ip.sin_addr), min_ip, INET_ADDRSTRLEN);
             }
-            else if ((count > 0 && (current_ip - previous_ip) > 1) || i == (count_lines - 1)) {
-                if (i ==  (count_lines - 1))
-                    memcpy(previous_line, line, 16);
+            else if ((count > 0 && (current_ip - previous_ip) > 1)) {
                 if (inet_pton(AF_INET, previous_line, &(ip.sin_addr)) < 1)
                     err(1, "inet_aton() for %s failed", previous_line);
                 inet_ntop(AF_INET, &(ip.sin_addr), max_ip, INET_ADDRSTRLEN); 
@@ -115,8 +102,13 @@ int main (int argc, char *argv[]) {
             memcpy(previous_line, line, 16); 
             
             count++;
-            i++;
         }
+
+        if (inet_pton(AF_INET, previous_line, &(ip.sin_addr)) < 1)
+            err(1, "inet_aton() for %s failed", previous_line);
+        inet_ntop(AF_INET, &(ip.sin_addr), max_ip, INET_ADDRSTRLEN); 
+        print_cidr(min_ip, max_ip);          
+                
 
         fclose(input);
         if (line)
