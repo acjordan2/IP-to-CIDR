@@ -50,16 +50,12 @@ static void print_cidr(const char *start_ip, const char *end_ip) {
 
 int main (int argc, char *argv[]) {
     
- char buf[BUFSIZ];
-
-
-    //struct in_addr ip;
     struct sockaddr_in ip;
-    FILE *input, *line_count;
-    char *line, previous_line[16], min_ip[INET_ADDRSTRLEN], max_ip[INET_ADDRSTRLEN];
+    FILE *input;
+    char *line, previous_line[16], min_ip[INET_ADDRSTRLEN], max_ip[INET_ADDRSTRLEN], buf[BUFSIZ];
     size_t len = 0;
     ssize_t read;
-    int count = 0, count_lines = 0, i = 0, c;
+    int count = 0;
     uint32_t current_ip, previous_ip;
  
     /* check that ip fits into int */
@@ -67,7 +63,7 @@ int main (int argc, char *argv[]) {
 
     if (isatty(fileno(stdin))) {
         if (argc !=2) {
-            printf("Usage: %s input__file\n", argv[0]);
+            printf("Usage: %s filename\n", argv[0]);
             exit(0);
         }
 
